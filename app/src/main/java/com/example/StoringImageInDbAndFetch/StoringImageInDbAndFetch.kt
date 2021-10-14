@@ -1,5 +1,6 @@
 package com.example.StoringImageInDbAndFetch
 
+import android.R.attr
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
@@ -9,14 +10,20 @@ import android.util.Log
 import android.widget.Toast
 import com.example.filestorageandroid9.R
 import com.example.filestorageandroid9.databinding.ActivityStoringImageInDbAndFetchBinding
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.InputStreamReader
+import android.R.attr.bitmap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.*
+import java.lang.Exception
+import java.net.URL
+import kotlin.coroutines.CoroutineContext
+
 
 class StoringImageInDbAndFetch : AppCompatActivity() {
 
-    lateinit var binding : ActivityStoringImageInDbAndFetchBinding
+    lateinit var binding: ActivityStoringImageInDbAndFetchBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStoringImageInDbAndFetchBinding.inflate(layoutInflater)
@@ -32,7 +39,7 @@ class StoringImageInDbAndFetch : AppCompatActivity() {
         }
 
         binding.btnSaveFromAsset.setOnClickListener {
-            saveFromAssets()
+            saveImageFromAsset()
         }
 
         binding.btnLoadAsset.setOnClickListener {
@@ -43,11 +50,22 @@ class StoringImageInDbAndFetch : AppCompatActivity() {
     }
 
 
-
-
     private fun saveImageInDB() {
-        var outFileName = "myImage.png"
-        var outFile = File(getExternalFilesDir("MyImageFolder"),outFileName)
+        saveImageFromUrl()
+    }
+
+
+    private fun loadImage() {
+        val inFileName = "myImage.png"
+        val inFile = File(getExternalFilesDir("MyImageFolder"), inFileName)
+        val bitmap = BitmapFactory.decodeStream(FileInputStream(inFile))
+        binding.iv.setImageBitmap(bitmap)
+
+    }
+
+    private fun saveImageFromResources(){
+        val outFileName = "myImage.png"
+        val outFile = File(getExternalFilesDir("MyImageFolder"),outFileName)
         val inputBitmap  = BitmapFactory.decodeResource(this@StoringImageInDbAndFetch.resources,R.drawable.dating_app)
 
         val fos = FileOutputStream(outFile)
@@ -59,37 +77,47 @@ class StoringImageInDbAndFetch : AppCompatActivity() {
 
 
 
+    private fun loadFromAssets() {
 
-    private fun loadImage() {
-        var inFileName = "myImage.png"
-        var inFile = File(getExternalFilesDir("MyImageFolder"),inFileName)
-        var bitmap = BitmapFactory.decodeStream(FileInputStream(inFile))
-        binding.iv.setImageBitmap(bitmap)
-
+        try {
+            val inFileName = "myImageFromAssets.jpg"
+            val inFile = File(getExternalFilesDir("MyImageFolder"), inFileName)
+            val bitmap = BitmapFactory.decodeStream(FileInputStream(inFile))
+            binding.iv.setImageBitmap(bitmap)
+        }
+        catch (e:Exception){
+            Toast.makeText(this@StoringImageInDbAndFetch,"Image Not Saved Yet",Toast.LENGTH_LONG).show()
+        }
     }
 
 
-    private fun saveFromAssets() {
-        var outFileName = "myImageFromAssets.jpg"
-        var outFile = File(getExternalFilesDir("MyImageFolder"),outFileName)
-        var inputStream = assets.open("ads/cycling.jpg")
+    fun saveImageFromUrl(){
+        CoroutineScope(Dispatchers.IO).launch {
+            val outFileName = "myImage.png"
+            val outFile = File(getExternalFilesDir("MyImageFolder"), outFileName)
+            val stringUrl = URL("http://157.245.156.73/ads/Find_doctor_bn.jpg")
+            val bitmap =
+                BitmapFactory.decodeStream(
+                    stringUrl.openStream())
+            val fos = FileOutputStream(outFile)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+            fos.close()
+            Log.d("tag", "save Done")
+            //Toast.makeText(this@StoringImageInDbAndFetch, "Ssve Done", Toast.LENGTH_LONG).show()
+        }
+    }
+
+
+    private fun saveImageFromAsset(){
+        val outFileName = "myImageFromAssets.jpg"
+        val outFile = File(getExternalFilesDir("MyImageFolder"), outFileName)
+        val inputStream = assets.open("ads/cycling.jpg")
         val bitmap = BitmapFactory.decodeStream(inputStream)
         val fos = FileOutputStream(outFile)
-        bitmap.compress(Bitmap.CompressFormat.JPEG,100,fos)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
         fos.close()
-        Toast.makeText(this@StoringImageInDbAndFetch,"Ssve Done",Toast.LENGTH_LONG).show()
-        Log.d("tag","save Done")
-
+        Toast.makeText(this@StoringImageInDbAndFetch, "Ssve Done", Toast.LENGTH_LONG).show()
+        Log.d("tag", "save Done")
     }
-
-
-    private fun loadFromAssets(){
-        var inFileName = "myImageFromAssets.jpg"
-        var inFile = File(getExternalFilesDir("MyImageFolder"),inFileName)
-        var bitmap = BitmapFactory.decodeStream(FileInputStream(inFile))
-        binding.iv.setImageBitmap(bitmap)
-    }
-
-
 
 }
