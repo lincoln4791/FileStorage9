@@ -11,14 +11,23 @@ import android.widget.Toast
 import com.example.filestorageandroid9.R
 import com.example.filestorageandroid9.databinding.ActivityStoringImageInDbAndFetchBinding
 import android.R.attr.bitmap
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import android.content.Context
+import androidx.lifecycle.LifecycleOwner
+import androidx.work.*
+import com.example.Constants
+import com.example.worker.SaveMissingBannerImages
+import kotlinx.coroutines.*
 import java.io.*
 import java.lang.Exception
 import java.net.URL
 import kotlin.coroutines.CoroutineContext
+
+
+
+
+
+
+
 
 
 class StoringImageInDbAndFetch : AppCompatActivity() {
@@ -45,8 +54,6 @@ class StoringImageInDbAndFetch : AppCompatActivity() {
         binding.btnLoadAsset.setOnClickListener {
             loadFromAssets()
         }
-
-
     }
 
 
@@ -59,7 +66,16 @@ class StoringImageInDbAndFetch : AppCompatActivity() {
         val inFileName = "myImage.png"
         val inFile = File(getExternalFilesDir("MyImageFolder"), inFileName)
         val bitmap = BitmapFactory.decodeStream(FileInputStream(inFile))
-        binding.iv.setImageBitmap(bitmap)
+
+        try {
+            binding.iv.setImageBitmap(bitmap)
+            Toast.makeText(this@StoringImageInDbAndFetch, " File Loaded",Toast.LENGTH_SHORT).show()
+        }
+        catch (e:Exception){
+            Toast.makeText(this@StoringImageInDbAndFetch, "Bad Image",Toast.LENGTH_SHORT).show()
+        }
+
+
 
     }
 
@@ -95,15 +111,28 @@ class StoringImageInDbAndFetch : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             val outFileName = "myImage.png"
             val outFile = File(getExternalFilesDir("MyImageFolder"), outFileName)
-            val stringUrl = URL("http://157.245.156.73/ads/Find_doctor_bn.jpg")
-            val bitmap =
-                BitmapFactory.decodeStream(
-                    stringUrl.openStream())
-            val fos = FileOutputStream(outFile)
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
-            fos.close()
-            Log.d("tag", "save Done")
-            //Toast.makeText(this@StoringImageInDbAndFetch, "Ssve Done", Toast.LENGTH_LONG).show()
+            try{
+
+                val stringUrl = URL("http://157.245.156.73/ads/Find_doctor_bn.jpg")
+                delay(400)
+                val bitmap =
+                    BitmapFactory.decodeStream(
+                        stringUrl.openStream())
+                val fos = FileOutputStream(outFile)
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                fos.close()
+                Log.d("tag", "save Done")
+                //Toast.makeText(this@StoringImageInDbAndFetch, "Ssve Done", Toast.LENGTH_LONG).show()
+            }
+            catch (e:Exception){
+                Log.d("tag","Save Failed")
+                if(outFile.exists()){
+                    outFile.delete()
+                    Log.d("tag","File Deleted")
+                }
+
+            }
+
         }
     }
 
@@ -119,5 +148,29 @@ class StoringImageInDbAndFetch : AppCompatActivity() {
         Toast.makeText(this@StoringImageInDbAndFetch, "Ssve Done", Toast.LENGTH_LONG).show()
         Log.d("tag", "save Done")
     }
+
+    fun saveBookmarkInBothLocalAndServer(context: Context, lifeCycleOwner: LifecycleOwner, fileName: String,mediaUrl:String, itemType: String) {
+
+        Log.d("Bookmark","bookmark util called fileName -> $fileName , mediaUrl -> $mediaUrl")
+
+        val myData: Data = workDataOf(Constants.MISSING_BANNER_FILE_NAME to fileName,
+            Constants.MISSING_BANNER_FILE_URL to mediaUrl)
+
+        val saveBookmarkWorkRequest: WorkRequest =
+            OneTimeWorkRequestBuilder<SaveMissingBannerImages>().setInputData(myData)
+                .build()
+
+        val saveWorker = WorkManager
+            .getInstance(context)
+        saveWorker.enqueue(saveBookmarkWorkRequest)
+
+        /*    saveWorker.getWorkInfoByIdLiveData(saveBookmarkWorkRequest.id).observe(lifeCycleOwner,{
+                if (it.state.isFinished){
+                    Log.d(DrugCost.TAG,"SAVE BOOKMARK DONE")
+                }
+            })*/
+
+    }
+
 
 }
