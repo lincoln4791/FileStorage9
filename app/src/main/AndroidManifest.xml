@@ -24,7 +24,7 @@
         </activity>
         <activity
             android:name="com.example.legecyStorage.LegecyStorage"
-            android:exported="true"></activity>
+            android:exported="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
